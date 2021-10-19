@@ -7,11 +7,10 @@
 	<!-- 어느 부분에서든 참조하고, 어떤곳에서든 참조해야하는 bean을 여기다 등록. 애는 존나 빨리 로딩됨 -->
 	<!-- 서비스와 다오 관련! -->
 	
-	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
-		<property name="username" value="bm"></property>
+	<bean id="dataSource" class="oracle.jdbc.pool.OracleDataSource">
+		<property name="user" value="bm"></property>
 		<property name="password" value="1234"></property>
-		<property name="url" value="jdbc:oracle:thin:@localhost:1521:xe"></property>
-		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" ></property>
+		<property name="URL" value="jdbc:oracle:thin:@localhost:1521:xe"></property>
 	</bean>
 	
 	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">

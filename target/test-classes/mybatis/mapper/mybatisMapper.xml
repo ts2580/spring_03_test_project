@@ -4,6 +4,13 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
   
 <mapper namespace="com.kh.spring.mybatis.mybatisMapper">
+
+	<!-- 파라미터 선언 -->
+	<!-- #{ } vs${ } -->
+	<!-- #{ } PreparedStatement에서 쿼리 템플릿을 완성시킨다음, 파라미터값을 전달받아 쿼리를 완성. 문자열 이스케이프처리 자동. -> SQL injection 공격에 안전-->
+	<!-- ${ }쿼리 템플릿이 생성되는 시점에 파라미터값을 전달받아 쿼리템플릿을 완성. 문자열 이스케이프처리 안됨. -> SQL injection 공격에 취약-->
+
+
 	
 	<select id="selectPasswordByUserId" resultType="String">
 		select password from member WHERE user_id = #{userId}
@@ -47,9 +54,170 @@
 		delete rent_master where title = #{userId}
 	</insert>
 	
-	<insert id="update">
-		update member set password = 'ppppp' where user_id = #{userId}
+	<update id="update">
+		update member set password = #{password} where user_id = #{userId}
+	</update>
+	
+	
+	<!-- mybatis의 기본 statement 객체는 PreparedStatement이다 -->
+	<!-- statementType 속성을 사용해 변경 가능 -->
+	<!-- statement, prepared, callable 사용가능 -->
+	<update id="procedure" statementType="CALLABLE">
+		{call SP_RENT_EXTENTED(#{rbIdx, mode=IN})
+	</update>
+	
+	<insert id="test01">
+		insert into book(title, author, bk_idx) values(#{title},#{author},SC_BK_IDX.nextval)
 	</insert>
+	
+	<update id="test02">
+		update rent_book set EXTENSION_CNT = 0 where EXTENSION_CNT >= #{cnt}
+	</update>
+	
+	<delete id="test03">
+		delete member where REG_DATE &lt;= #{regDate2} and REG_DATE >= #{regDate}
+	</delete>
+	
+	<select id="test04" resultType="map"> 
+		select title from(select title from book order by rent_cnt desc) WHERE rownum &lt;= #{cnt}
+		<!-- select * from(select b.* from book b order by rent_cnt desc) WHERE rownum &lt; 4 -->
+		<!-- q별칭 붙이는 이유 : * 붙일떄 별칭 없으면 안들어먹음 -->
+	</select>
+	
+	
+	<select id="dynamicIf" resultType="map">
+		select * from book where
+		<if test="filter=='info'">
+		info like '%'||#{keyword}||'%'
+		</if>
+		<if test="filter=='author'">
+		author like '%'||#{keyword}||'%'
+		</if>
+	</select>
+	
+	<select id="dynamicChoose" resultType="map">
+		select * from book where
+		<choose>
+			<when test="filter=='info'">
+				info like '%'||#{keyword}||'%'
+			</when>
+			<when test="filter=='author'">
+				author like '%'||#{keyword}||'%'
+			</when>
+			<otherwise>
+				title like '%'||#{keyword}||'%'
+			</otherwise>
+		</choose>
+	</select>
+
+	<select id="dynamicForEachAndWhereTag" resultType="map">
+		select * from book
+		<where>
+		<!-- where태그쓰면 해당 if문으로 시작할때 알아서 앞 or 날려줌. 없으면 title로 시작안하면 where or 가 되잖아 -->
+			<foreach collection="filters" item="filter">
+				<if test="filter=='title'">
+					title like '%'||#{keyword}||'%'
+				</if>
+				<if test="filter=='author'">
+					or author like '%'||#{keyword}||'%'
+				</if>
+				<if test="filter=='info'">
+					or info like '%'||#{keyword}||'%'
+				</if>
+			</foreach>
+		</where>
+	</select>
+	
+	<select id="dynamicForEachAnd2Tag" resultType="map">
+		select * from book
+		<where>
+		<!-- where태그쓰면 해당 if문으로 시작할때 알아서 앞 and 날려줌. 없으면 title로 시작안하면 where or 가 되잖아 -->
+			<foreach collection="filters" item="filter">
+				<if test="filter=='title'">
+					title like '%'||#{keyword}||'%'
+				</if>
+				<if test="filter=='author'">
+					and author like '%'||#{keyword}||'%'
+				</if>
+				<if test="filter=='info'">
+					and info like '%'||#{keyword}||'%'
+				</if>
+			</foreach>
+		</where>
+	</select>
+
+	<select id="dynamicForEachWithList" resultType="map">
+		select * from book where title in
+		<!-- map은 key값을 받지만 list를 받을때는 collection에 list를 집어넣자 -->
+		<!-- open 쓰면 문자열 시작할거 지정 -->
+		<!-- in은 like와 다르다! 그 값을 찾음! 그 값이 들어있는 값이 아니라 -->
+		<foreach collection="list" item="title" open="(" close=")" separator=",">
+			#{title}
+		</foreach>
+	</select>
+	
+	<insert id="insertTemplate">
+	<!-- 시점도 시점인데 #이거는 ?처리되서 여기선 살작 곤란. 문자열로 처리되도록 ${ }써주자 -->
+		insert into ${tableName}
+		<foreach collection="data" index="key" open="(" close=")" separator=",">
+		<!--map을 넘길땐 index에 key값을 넣음 -->
+			${key}
+		</foreach>
+		values
+		<foreach collection="data" item="val" open="(" close=")" separator=",">
+			#{val}
+		</foreach>
+	</insert>
+	
+	<insert id="insertTemplateBook">
+	<!-- 시퀀스도 그냥 문자열 처리가되서 들어가버림. 따라서 시퀀스가 있을때랑 없을때랑 쪼개주자. -->
+		insert into ${tableName}
+		<if test="sec == null">
+			<foreach collection="data" index="key" open="(" close=")" separator=",">
+				${key}
+			</foreach>
+			values
+			<foreach collection="data" item="val" open="(" close=")" separator=",">
+				#{val}
+			</foreach>
+		</if>
+		<if test="sec != null">
+			<foreach collection="data" index="key" open="(" close="," separator=",">
+			<!-- 파라미터(예를들어 title , author) 뒤에 테이블명(bk_idx) 넣어줘야하니 close에 ','넣자  -->
+				${key}
+			</foreach>
+			${sec.colName})  values
+			<foreach collection="data" item="val" open="(" close="," separator=",">
+				#{val}
+			</foreach>
+			${sec.val}) 
+		</if>
+	</insert>
+	
+	<update id="dynamicSet">
+		update member
+		<set>
+		<!-- where태그랑 같다. 컴마 날려줌 -->
+			<if test="password != null">
+				password = #{password}
+			</if>
+			<if test="email != null">
+				, email = #{email}
+			</if>
+			<if test="tell != null">
+				, tell = #{tell}
+			</if>
+			where user_id = #{userId}
+		</set>
+	
+	</update>
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	
