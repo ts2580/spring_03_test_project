@@ -1,18 +1,11 @@
 package com.kh.spring.member.model.repository;
 
-import org.mybatis.spring.SqlSessionTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
+import org.apache.ibatis.annotations.Mapper;
 
-@Repository
-public class MemberRepository {
-	
-	@Autowired
-	private SqlSessionTemplate session;
-	
-	public String selectPasswordByUserId(String userId) {
-		return session.selectOne("com.kh.spring.mybatis.mybatisMapper.selectPasswordByUserId", userId);
-		
-	}
+@Mapper
+public interface MemberRepository {
 
+	String selectPasswordByUserId(String string);
+	// mybatisMapper의 셀렉트구문이 실행. 여기 변수명과 그 동네 아이디도 같고. root context에서 맵퍼 어노테이션 붙으면 mapper로 등록해주기로 했으니
+	
 }
