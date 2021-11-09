@@ -5,7 +5,7 @@ public class Book {
 	private String bkIdx;
 	private String title;
 	private String author;
-	private int rentCnt;
+	private int rentCnt; 
 	
 	public Book() {
 		// TODO Auto-generated constructor stub
